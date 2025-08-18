@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import html2canvas from 'html2canvas';
 
 function App() {
   const [repoUrl, setRepoUrl] = useState('');
   const [tree, setTree] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const treeRef = useRef(null);  // 👈 reference to tree container
 
   const fetchTreeFromUrl = async () => {
     setLoading(true);
@@ -51,6 +53,23 @@ function App() {
     }
 
     setLoading(false);
+  };
+
+  // 👇 Function to download tree as PNG
+  const downloadTreeAsImage = async () => {
+    if (!treeRef.current) return;
+
+    try {
+      const canvas = await html2canvas(treeRef.current, {
+        backgroundColor: '#ffffff'
+      });
+      const link = document.createElement('a');
+      link.download = 'repo-tree.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('Failed to capture tree as image:', err);
+    }
   };
 
   const renderTree = (obj) => {
@@ -127,18 +146,43 @@ function App() {
           Fetch Tree
         </button>
 
+        {tree && (
+          <button
+            onClick={downloadTreeAsImage}
+            style={{
+              padding: '0.6rem 1.2rem',
+              marginTop: '1rem',
+              marginLeft: '0.5rem',
+              background: 'linear-gradient(90deg, #34e89e 0%, #0f3443 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: 'bold',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(50,150,100,0.10)',
+              transition: 'background 0.2s',
+            }}
+          >
+            📥 Download as PNG
+          </button>
+        )}
+
         <h3 style={{ color: '#3a3a8c', marginTop: '2rem' }}>Output: </h3>
         {loading && <p style={{ color: '#6a82fb' }}>Loading...</p>}
         {error && <p style={{ color: '#fc5c7d', fontWeight: 'bold' }}>{error}</p>}
         {tree && (
-          <div style={{
-            marginTop: '1.5rem',
-            background: '#f7f8fc',
-            borderRadius: '1rem',
-            padding: '1.2rem',
-            boxShadow: '0 2px 8px rgba(100,100,200,0.07)',
-            overflowX: 'auto',
-          }}>
+          <div
+            ref={treeRef}   // 👈 reference added here
+            style={{
+              marginTop: '1.5rem',
+              background: '#f7f8fc',
+              borderRadius: '1rem',
+              padding: '1.2rem',
+              boxShadow: '0 2px 8px rgba(100,100,200,0.07)',
+              overflowX: 'auto',
+            }}
+          >
             {renderTree(tree)}
           </div>
         )}
