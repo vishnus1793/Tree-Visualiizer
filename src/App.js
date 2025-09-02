@@ -6,15 +6,18 @@ function App() {
   const [tree, setTree] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const treeRef = useRef(null);  // 👈 reference to tree container
+  const treeRef = useRef(null);
 
-  const fetchTreeFromUrl = async () => {
+  const fetchTreeFromUrl = async (e) => {
+    if (e) e.preventDefault(); // 👈 prevent form refresh
     setLoading(true);
     setError('');
     setTree(null);
 
     const input = repoUrl.trim();
-    const match = input.match(/^https:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/tree\/([^\/]+))?/);
+    const match = input.match(
+      /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/tree\/([^\/]+))?/,
+    );
 
     if (!match) {
       setError('Invalid GitHub URL format.');
@@ -26,7 +29,9 @@ function App() {
     const branch = branchFromUrl || 'main';
 
     try {
-      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`);
+      const res = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
+      );
       const data = await res.json();
 
       if (!data.tree) {
@@ -55,13 +60,12 @@ function App() {
     setLoading(false);
   };
 
-  // 👇 Function to download tree as PNG
+  // 👇 download function (unchanged)
   const downloadTreeAsImage = async () => {
     if (!treeRef.current) return;
-
     try {
       const canvas = await html2canvas(treeRef.current, {
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
       });
       const link = document.createElement('a');
       link.download = 'repo-tree.png';
@@ -72,79 +76,89 @@ function App() {
     }
   };
 
-  const renderTree = (obj) => {
-    return (
-      <ul>
-        {Object.entries(obj).map(([key, value]) => (
-          <li key={key} className={Object.keys(value).length ? 'folder' : ''}>
-            {key}
-            {Object.keys(value).length > 0 && renderTree(value)}
-          </li>
-        ))}
-      </ul>
-    );
-  };
+  const renderTree = (obj) => (
+    <ul>
+      {Object.entries(obj).map(([key, value]) => (
+        <li key={key} className={Object.keys(value).length ? 'folder' : ''}>
+          {key}
+          {Object.keys(value).length > 0 && renderTree(value)}
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-      padding: '2rem',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '1.5rem',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
-        padding: '2.5rem 2rem 2rem 2rem',
-        maxWidth: '600px',
-        width: '100%',
-        marginTop: '2rem',
-      }}>
-        <h2 style={{ color: '#3a3a8c', marginBottom: '0.5rem' }}>GitHub Repo Tree Viewer</h2>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        padding: '2rem',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+      }}
+    >
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '1.5rem',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+          padding: '2.5rem 2rem 2rem 2rem',
+          maxWidth: '600px',
+          width: '100%',
+          marginTop: '2rem',
+        }}
+      >
+        <h2 style={{ color: '#3a3a8c', marginBottom: '0.5rem' }}>
+          GitHub Repo Tree Viewer
+        </h2>
         <p style={{ color: '#555', marginBottom: '1.5rem' }}>
-          Enter GitHub repo URL (e.g., <code>https://github.com/octocat/Hello-World</code>)
+          Enter GitHub repo URL (e.g.,{' '}
+          <code>https://github.com/octocat/Hello-World</code>)
         </p>
-        <input
-          type="text"
-          placeholder="Enter GitHub repository URL..."
-          value={repoUrl}
-          onChange={(e) => setRepoUrl(e.target.value)}
-          style={{
-            margin: '0.3rem 0',
-            padding: '0.7rem',
-            width: '100%',
-            borderRadius: '0.5rem',
-            border: '1.5px solid #a0a0e0',
-            fontSize: '1rem',
-            outline: 'none',
-            boxSizing: 'border-box',
-            marginBottom: '1rem',
-            background: '#f7f8fc',
-          }}
-        />
-        <br />
-        <button
-          onClick={fetchTreeFromUrl}
-          style={{
-            padding: '0.7rem 1.5rem',
-            marginTop: '0.5rem',
-            background: 'linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontWeight: 'bold',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(100,100,200,0.10)',
-            transition: 'background 0.2s',
-          }}
-        >
-          Fetch Tree
-        </button>
+
+        {/* 👇 wrap input + button in a form */}
+        <form onSubmit={fetchTreeFromUrl}>
+          <input
+            type="text"
+            placeholder="Enter GitHub repository URL..."
+            value={repoUrl}
+            onChange={(e) => setRepoUrl(e.target.value)}
+            style={{
+              margin: '0.3rem 0',
+              padding: '0.7rem',
+              width: '100%',
+              borderRadius: '0.5rem',
+              border: '1.5px solid #a0a0e0',
+              fontSize: '1rem',
+              outline: 'none',
+              boxSizing: 'border-box',
+              marginBottom: '1rem',
+              background: '#f7f8fc',
+            }}
+          />
+          <br />
+          <button
+            type="submit" // 👈 important
+            style={{
+              padding: '0.7rem 1.5rem',
+              marginTop: '0.5rem',
+              background:
+                'linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(100,100,200,0.10)',
+              transition: 'background 0.2s',
+            }}
+          >
+            Fetch Tree
+          </button>
+        </form>
 
         {tree && (
           <button
@@ -153,7 +167,8 @@ function App() {
               padding: '0.6rem 1.2rem',
               marginTop: '1rem',
               marginLeft: '0.5rem',
-              background: 'linear-gradient(90deg, #34e89e 0%, #0f3443 100%)',
+              background:
+                'linear-gradient(90deg, #34e89e 0%, #0f3443 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '0.5rem',
@@ -170,10 +185,12 @@ function App() {
 
         <h3 style={{ color: '#3a3a8c', marginTop: '2rem' }}>Output: </h3>
         {loading && <p style={{ color: '#6a82fb' }}>Loading...</p>}
-        {error && <p style={{ color: '#fc5c7d', fontWeight: 'bold' }}>{error}</p>}
+        {error && (
+          <p style={{ color: '#fc5c7d', fontWeight: 'bold' }}>{error}</p>
+        )}
         {tree && (
           <div
-            ref={treeRef}   // 👈 reference added here
+            ref={treeRef}
             style={{
               marginTop: '1.5rem',
               background: '#f7f8fc',
